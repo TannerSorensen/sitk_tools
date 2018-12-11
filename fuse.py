@@ -5,6 +5,7 @@
 import SimpleITK as sitk
 import numpy as np
 import os
+import sys
 
 def get_superresolution_recon(img, ref_img):
     resampler = sitk.ResampleImageFilter()
@@ -49,8 +50,12 @@ def write_stats_image(arr, spacing, direction):
     stats_img.SetDirection(direction)
     sitk.WriteImage(stats_img,"resampled_mean.mha")
 
+# parse input arguments
+# 1. t2wi_path: path to directory containing three subdirectories 
+#    whose names match "cor", "sag", and "axial" (case-insensitive)
+t2wi_path = sys.argv[1]
+
 # get paths to directories containing the three orthogonal DICOM MR image stacks
-t2wi_path = os.path.join(os.getcwd(),"data","js")
 img_stack_folders = os.listdir(t2wi_path)
 sag_dir = [x for x in img_stack_folders if "sag" in x.lower()][0]
 cor_dir = [ x for x in img_stack_folders if "cor" in x.lower()][0]
