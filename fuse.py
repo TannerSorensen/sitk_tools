@@ -50,6 +50,14 @@ def write_stats_image(arr, spacing, direction):
     stats_img.SetDirection(direction)
     sitk.WriteImage(stats_img,"resampled_mean.mha")
 
+def read_dicom_dir(dicom_path):
+    reader = sitk.ImageSeriesReader()
+    dicom_names = reader.GetGDCMSeriesFileNames(dicom_path)
+    reader.SetFileNames(dicom_names)
+    img = reader.Execute()
+
+    return img
+
 # parse input arguments
 # 1. t2wi_path: path to directory containing three subdirectories 
 #    whose names match "cor", "sag", and "axial" (case-insensitive)
@@ -63,28 +71,19 @@ axial_dir = [ x for x in img_stack_folders if "axial" in x.lower()][0]
 
 # Sagittal image (reference)
 print("resample sagittal image stack")
-reader = sitk.ImageSeriesReader()
-dicom_names = reader.GetGDCMSeriesFileNames( os.path.join(t2wi_path,sag_dir))
-reader.SetFileNames(dicom_names)
-sag_img = reader.Execute()
+sag_img = read_dicom_dir(os.path.join(t2wi_path,sag_dir))
 sag_img_resampled = get_superresolution_recon(sag_img, sag_img)
 sitk.WriteImage(sag_img_resampled, "resampled_sag.mha")
 
 # Coronal image
 print("resample coronal image stack")
-reader = sitk.ImageSeriesReader()
-dicom_names = reader.GetGDCMSeriesFileNames(os.path.join(t2wi_path,cor_dir))
-reader.SetFileNames(dicom_names)
-cor_img = reader.Execute()
+cor_img = read_dicom_dir(os.path.join(t2wi_path,cor_dir))
 cor_img_resampled = get_superresolution_recon(cor_img, sag_img_resampled)
 sitk.WriteImage(cor_img_resampled, "resampled_cor.mha")
 
 # Resample axial image
 print("resample axial image stack")
-reader = sitk.ImageSeriesReader()
-dicom_names = reader.GetGDCMSeriesFileNames(os.path.join(t2wi_path,axial_dir))
-reader.SetFileNames(dicom_names)
-axial_img = reader.Execute()
+axial_img = read_dicom_dir(os.path.join(t2wi_path,axial_dir))
 axial_img_resampled = get_superresolution_recon(axial_img, sag_img_resampled)
 sitk.WriteImage(axial_img_resampled, "resampled_axial.mha")
 
