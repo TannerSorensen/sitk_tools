@@ -5,11 +5,6 @@ import sys
 import time
 import SimpleITK as sitk
 
-img_filename = sys.argv[1]
-output_path = sys.argv[2]
-
-img = sitk.ReadImage(img_filename)
-
 def writeSlices(series_tag_values, img, i):
     castFilter = sitk.CastImageFilter()
     castFilter.SetOutputPixelType(sitk.sitkInt16)
@@ -38,6 +33,14 @@ def writeSlices(series_tag_values, img, i):
         os.makedirs(output_path)
 
     writer.Execute(image_slice)
+
+# parse input arguments
+# 1. img_filename: name of image file (incl. extension)
+img_filename = sys.argv[1]
+# 2. output_path: path of directory containing the output DICOM series
+output_path = sys.argv[2]
+
+img = sitk.ReadImage(img_filename)
 
 modification_time = time.strftime("%H%M%S")
 modification_date = time.strftime("%Y%m%d")
