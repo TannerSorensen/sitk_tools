@@ -17,8 +17,9 @@ Fuse three orthogonal stacks of DICOM MR images in the sagittal, coronal, and ax
 ./fuse.py path_to_dicom_dirs
 ```
 The script outputs the following `.mha` files:
-    * `resampled_sag.mha`, `resampled_cor.mha`, `resampled_axial.mha`: imaged obtained by resampling the sagittal, coronal, and axial DICOM image stacks to have isotropic spatial resolution (taken to be the in-plane spatial resoluton of the DICOM MR image stack). These files only contain information from a single image stack (i.e., no fusion).
-    * `superres_mean.mha`, `superres_median.mha`, `superres_min.mha`, `superres_max.mha`: super-resolution images obtained by fusing `resampled_sag.mha`, `resampled_sag.mha`, and `resampled_sag.mha` by taking the mean, median, minimum, and maximum.
+
+* `resampled_sag.mha`, `resampled_cor.mha`, `resampled_axial.mha`: imaged obtained by resampling the sagittal, coronal, and axial DICOM image stacks to have isotropic spatial resolution (taken to be the in-plane spatial resoluton of the DICOM MR image stack). These files only contain information from a single image stack (i.e., no fusion).
+* `superres_mean.mha`, `superres_median.mha`, `superres_min.mha`, `superres_max.mha`: super-resolution images obtained by fusing `resampled_sag.mha`, `resampled_sag.mha`, and `resampled_sag.mha` by taking the mean, median, minimum, and maximum.
 
 ### `to_dcm.py`
 
