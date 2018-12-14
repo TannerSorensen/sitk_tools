@@ -64,8 +64,8 @@ def read_dicom_dir(input_dicom_path):
 # 1. t2wi_path: path to directory containing three subdirectories 
 #    whose names match "cor", "sag", and "axial" (case-insensitive)
 t2wi_path = sys.argv[1]
-# 2. output_dicom_path: path to directory containing output dicom files
-output_dicom_path = sys.argv[2]
+# 2. output_filename: filename for super-resolution image as .mha file
+output_filename = sys.argv[2]
 
 # get paths to directories containing the three orthogonal DICOM MR image stacks
 img_stack_folders = os.listdir(t2wi_path)
@@ -91,84 +91,23 @@ axial_img = read_dicom_dir(os.path.join(t2wi_path,axial_dir))[0]
 axial_img_resampled = get_superresolution_recon(axial_img, sag_img_resampled)
 sitk.WriteImage(axial_img_resampled, "resampled_axial.mha")
 
-# Fuse the three MR image stacks using the mean, median, max, and min of the three images 
+# Fuse the three MR image stacks using the median of the three images 
 print("fusing images")
 arr = np.stack([sitk.GetArrayFromImage(sag_img_resampled),
                 sitk.GetArrayFromImage(cor_img_resampled),
                 sitk.GetArrayFromImage(axial_img_resampled)])
 median_img = sitk.GetImageFromArray(np.median(arr, axis=0))
 
-cast_filter = sitk.CastImageFilter()
-cast_filter.SetOutputPixelType(sitk.sitkInt16)
-
-# Convert floating type image (imgSmooth) to int type (imgFiltered)
-median_img = cast_filter.Execute(median_img)
-
-# Set median image properties
+# set image properties
 median_img.SetDirection(sag_img_resampled.GetDirection())
 median_img.SetSpacing(sag_img_resampled.GetSpacing())
 median_img.SetOrigin(sag_img_resampled.GetOrigin())
 
-# Write the 3D image as a series
-# IMPORTANT: There are many DICOM tags that need to be updated when you modify an
-#            original image. This is a delicate opration and requires knowlege of
-#            the DICOM standard. This example only modifies some. For a more complete
-#            list of tags that need to be modified see:
-#                           http://gdcm.sourceforge.net/wiki/index.php/Writing_DICOM
+# append file extension if not already included
+if ".mha" not in output_filename:
+    output_filename = output_filename+".mha"
 
-# create output directory if it does not exist yet
-if not os.path.exists(output_dicom_path):
-    os.makedirs(output_dicom_path)
+# write .mha image
+sitk.WriteImage(median_img, output_filename)
 
-# initialize file writer
-writer = sitk.ImageFileWriter()
 
-# Use the study/series/frame of reference information given in the meta-data
-# dictionary and not the automatically generated information from the file IO
-writer.KeepOriginalImageUIDOn()
-
-# Copy relevant tags from the original meta-data dictionary (private tags are also
-# accessible).
-tags_to_copy = ["0010|0010", # Patient Name
-                "0010|0020", # Patient ID
-                "0010|0030", # Patient Birth Date
-                "0020|000d",
-                "0020|0010", # Study ID, for human consumption
-                "0008|0020", # Study Date
-                "0008|0030", # Study Time
-                "0008|0050", # Accession Number
-                "0008|0060"] # Modality
-
-# set the modification date and time to be same for all DICOM images
-modification_time = time.strftime("%H%M%S")
-modification_date = time.strftime("%Y%m%d")
-
-# Copy some of the tags and add the relevant tags indicating the change.
-# For the series instance UID (0020|000e), each of the components is a number, cannot start
-# with zero, and separated by a '.' We create a unique series ID using the date and time.
-# tags of interest:
-direction = median_img.GetDirection()
-series_tag_values = [(k, series_reader.GetMetaData(0,k)) for k in tags_to_copy if series_reader.HasMetaDataKey(0,k)] + \
-                 [("0008|0031",modification_time),    # Series Time
-                  ("0008|0021",modification_date),    # Series Date
-                  ("0008|0008","DERIVED\\SECONDARY"), # Image Type
-                  #("0020|000d", "1.5.948.8.3.2892493.9.7260."+modification_date+".8"+modification_time),  # Study Instance UID
-                  ("0020|000e", "1.5.948.8.3.2892493.9.7260."+modification_date+".8"+modification_time),  # Series Instance UID
-                  ("0020|0037", '\\'.join(map(str, (direction[0], direction[3], direction[6],             # Image Orientation (Patient)
-                                                    direction[1],direction[4],direction[7])))),
-                  ("0008|103e", series_reader.GetMetaData(0,"0008|103e") + "super-resolution SimpleITK")] # Series Description
-
-for i in range(median_img.GetDepth()):
-    image_slice = median_img[:,:,i]
-    # Tags shared by the series.
-    for tag, value in series_tag_values:
-        image_slice.SetMetaData(tag, value)
-    # Slice specific tags.
-    image_slice.SetMetaData("0008|0012", time.strftime("%Y%m%d")) # Instance Creation Date
-    image_slice.SetMetaData("0008|0013", time.strftime("%H%M%S")) # Instance Creation Time
-    image_slice.SetMetaData("0020|0032", '\\'.join(map(str,median_img.TransformIndexToPhysicalPoint((0,0,i))))) # Image Position (Patient)
-    image_slice.SetMetaData("0020|0013", str(i)) # Instance Number
-
-    # Write to the output directory and add the extension dcm, to force writing in DICOM format.
-    writer.SetFileName(os.path.join(sys.argv[2],"0000-"+str(i).zfill(4)+".dcm"))
-    writer.Execute(image_slice)
