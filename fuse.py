@@ -45,11 +45,6 @@ def get_superresolution_recon(img, ref_img):
 
     return img_resampled
 
-def write_stats_mha(stats_img, spacing, direction):
-    stats_img.SetSpacing(spacing)
-    stats_img.SetDirection(direction)
-    sitk.WriteImage(stats_img, output_filename+".mha")
-
 def read_dicom_dir(input_dicom_path):
     series_reader = sitk.ImageSeriesReader()
     dicom_names = series_reader.GetGDCMSeriesFileNames(input_dicom_path)
