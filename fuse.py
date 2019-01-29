@@ -59,7 +59,7 @@ def read_dicom_dir(input_dicom_path):
 # 1. t2wi_path: path to directory containing three subdirectories 
 #    whose names match "cor", "sag", and "axial" (case-insensitive)
 t2wi_path = sys.argv[1]
-# 2. output_filename: filename for super-resolution image as .mha file
+# 2. output_filename: filename for super-resolution image as .nii file
 output_filename = sys.argv[2]
 
 # get paths to directories containing the three orthogonal DICOM MR image stacks
@@ -72,19 +72,19 @@ axial_dir = [ x for x in img_stack_folders if "axial" in x.lower()][0]
 print("resample sagittal image stack")
 sag_img, series_reader = read_dicom_dir(os.path.join(t2wi_path,sag_dir))
 sag_img_resampled = get_superresolution_recon(sag_img, sag_img)
-sitk.WriteImage(sag_img_resampled, "resampled_sag.mha")
+sitk.WriteImage(sag_img_resampled, "resampled_sag.nii")
 
 # Coronal image
 print("resample coronal image stack")
 cor_img = read_dicom_dir(os.path.join(t2wi_path,cor_dir))[0]
 cor_img_resampled = get_superresolution_recon(cor_img, sag_img_resampled)
-sitk.WriteImage(cor_img_resampled, "resampled_cor.mha")
+sitk.WriteImage(cor_img_resampled, "resampled_cor.nii")
 
 # Resample axial image
 print("resample axial image stack")
 axial_img = read_dicom_dir(os.path.join(t2wi_path,axial_dir))[0]
 axial_img_resampled = get_superresolution_recon(axial_img, sag_img_resampled)
-sitk.WriteImage(axial_img_resampled, "resampled_axial.mha")
+sitk.WriteImage(axial_img_resampled, "resampled_axial.nii")
 
 # Fuse the three MR image stacks using the median of the three images 
 print("fusing images")
@@ -99,10 +99,10 @@ median_img.SetSpacing(sag_img_resampled.GetSpacing())
 median_img.SetOrigin(sag_img_resampled.GetOrigin())
 
 # append file extension if not already included
-if ".mha" not in output_filename:
-    output_filename = output_filename+".mha"
+if ".nii" not in output_filename:
+    output_filename = output_filename+".nii"
 
-# write .mha image
+# write .nii image
 sitk.WriteImage(median_img, output_filename)
 
 
